@@ -10,7 +10,7 @@ hosts:
   - name: vma
     base_box:
       image: kali-2026.1-x86_64
-      mgmt_user: debian
+      mgmt_user: root
     flavor: c1_r4_d20
 
 routers:
