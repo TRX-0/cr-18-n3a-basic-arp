@@ -1,0 +1,8 @@
+[Unit]
+Description=One-shot flag emitter for the ARP-poisoning lab
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/flag-emitter.sh
