@@ -1,0 +1,5 @@
+---
+decoy_ip: 192.168.25.99
+decoy_port: 4444
+flag_value: "FLAG{set-via-apg}"
+broadcast_interval_sec: 10

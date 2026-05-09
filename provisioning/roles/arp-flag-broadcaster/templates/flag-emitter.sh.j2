@@ -1,0 +1,12 @@
+#!/bin/sh
+# Periodic flag emitter for the basic ARP-poisoning lab.
+# Opens a short-lived TCP connection to the decoy address and writes the flag.
+# When nobody owns the decoy IP, the kernel's ARP request goes unanswered and
+# this connection times out. When someone (the trainee) replies to that ARP
+# request first, the flag is delivered to them instead.
+
+DEST_IP="{{ decoy_ip }}"
+DEST_PORT="{{ decoy_port }}"
+FLAG="{{ flag_value }}"
+
+echo "$FLAG" | nc -w 3 -N "$DEST_IP" "$DEST_PORT"

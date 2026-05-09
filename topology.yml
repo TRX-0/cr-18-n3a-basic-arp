@@ -1,0 +1,45 @@
+name: cr-18-n3a-basic-arp
+
+hosts:
+  - name: vm1
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+    flavor: standard.small
+
+  - name: vma
+    base_box:
+      image: kali-2026.1-x86_64
+      mgmt_user: kali
+    flavor: c1_r4_d20
+
+routers:
+  - name: router
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: standard.small
+
+networks:
+  - name: lan
+    cidr: 192.168.25.0/24
+    accessible_by_user: true
+
+wan:
+  name: internet-connection
+  cidr: 100.100.100.0/24
+
+net_mappings:
+  - host: vm1
+    network: lan
+    ip: 192.168.25.10
+  - host: vma
+    network: lan
+    ip: 192.168.25.20
+
+router_mappings:
+  - router: router
+    network: lan
+    ip: 192.168.25.1
+
+groups: []

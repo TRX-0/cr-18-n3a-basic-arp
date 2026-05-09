@@ -1,0 +1,90 @@
+{
+  "title": "CR-18 / Module 3 / N3a — Basic ARP Poisoning",
+  "description": "Practise the most fundamental layer-two man-in-the-middle attack. A host on the LAN keeps reaching for an address that nobody owns; claim that address with spoofed ARP and you receive whatever the host was about to send.",
+  "prerequisites": [
+    "Working knowledge of the OSI model up to layer three",
+    "Comfort using a Linux shell"
+  ],
+  "outcomes": [
+    "Identify ARP traffic on a local segment with tcpdump",
+    "Use arpspoof to claim an IP address that is not your own",
+    "Capture another host's plaintext traffic with netcat"
+  ],
+  "state": "UNRELEASED",
+  "levels": [
+    {
+      "title": "Briefing",
+      "level_type": "INFO_LEVEL",
+      "order": 0,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "## Scenario\n\nYou are sitting on a small office LAN with two machines on it: a host called **vm1** at `192.168.25.10`, and your attacker workstation **vma** at `192.168.25.20`.\n\n**vm1** has been misconfigured. Every ten seconds it tries to talk to `192.168.25.99`, an address that nobody on this network actually owns. The TCP attempt times out, **vm1** waits ten seconds, and tries again. Forever.\n\nWhen a host needs to send a frame to an IP on its own subnet, it first asks the network: *\"who has this address?\"*. That question is an ARP request, and there is nothing stopping you from answering it with a lie.\n\n## What you will do\n\n1. Watch the wire to confirm the pattern.\n2. Convince **vm1** that `192.168.25.99` lives at *your* MAC address.\n3. Listen on the right port and read whatever **vm1** sends you.\n\nThe flag is whatever **vm1** writes onto the wire."
+    },
+    {
+      "title": "Get Access",
+      "level_type": "ACCESS_LEVEL",
+      "order": 1,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "passkey": "start",
+      "cloud_content": "Open a console on **vma** and log in.\n\n1. In the topology overview on the right, right-click on **`vma`** and choose **`Open console`**. A pop-up window will appear.\n2. Log in with username **`user`** and password **`Password123`**.\n\nIf you prefer, SSH works too. The setup is documented at https://docs.platform.cyberrange.cz/user-guide-advanced/sandboxes/sandbox-access/#user-access. SSH makes it easier to copy and paste, but takes a few minutes to configure.\n\nWhen you are in, submit **`start`** to unlock the next level.",
+      "local_content": "This sandbox has not been validated for local-only deployment."
+    },
+    {
+      "title": "Capture the broadcast",
+      "level_type": "TRAINING_LEVEL",
+      "order": 2,
+      "estimated_duration": 25,
+      "minimal_possible_solve_time": 5,
+      "answer": null,
+      "answer_variable_name": "flag",
+      "content": "From **vma**, intercept whatever **vm1** is trying to deliver to `192.168.25.99`.\n\nYou will need to do four things, roughly in this order:\n\n1. Confirm what **vm1** is doing on the wire (look for ARP requests it never gets a reply to).\n2. Send forged ARP replies so that **vm1** maps `192.168.25.99` to your MAC address.\n3. Make your kernel willing to accept packets destined for `192.168.25.99` — owning the MAC is not enough.\n4. Have something listening on the right TCP port when **vm1** finally connects.\n\nSubmit the string the host writes to you. It will look like a flag.",
+      "solution": "1. **See the pattern.** Pick the LAN-facing interface (`ip -br addr` will show it; on this image it is usually `eth0`). Watch the segment:\n\n   `sudo tcpdump -ni eth0 'arp or host 192.168.25.99'`\n\n   You should see `Request who-has 192.168.25.99 tell 192.168.25.10` repeating every ten seconds, with no replies. Note the destination port that vm1 is trying to reach (it is **TCP/4444**).\n\n2. **Spoof the ARP.** Use `arpspoof` from the `dsniff` package. You only need to lie to vm1 in one direction, telling it that the decoy address is at your MAC:\n\n   `sudo arpspoof -i eth0 -t 192.168.25.10 192.168.25.99`\n\n   Leave it running. You will see periodic `arp reply 192.168.25.99 is-at <your-mac>` lines.\n\n3. **Claim the decoy address as a local IP.** Spoofing the ARP redirects the frame to your interface, but Linux will still drop the packet at the IP layer because it is destined for an address you do not own. Add it as a secondary IP:\n\n   `sudo ip addr add 192.168.25.99/32 dev eth0`\n\n   Skip this step and your `nc` listener will never see a connection — the kernel silently discards every SYN.\n\n4. **Listen for the connection.** In a second terminal:\n\n   `sudo nc -lvnp 4444`\n\n5. Within ten seconds vm1 will try again, the kernel resolves `192.168.25.99` to your MAC, the packet reaches your IP stack because you own that address, and `nc` accepts the connection. The line that arrives is the flag: **`${ANSWER}`**.\n\nWhen you are done, stop arpspoof with Ctrl+C — it sends a few corrective ARP replies on its way out so the LAN returns to a clean state — and remove the secondary IP with `sudo ip addr del 192.168.25.99/32 dev eth0`.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Watch the wire first",
+          "content": "Before you attack, look. `tcpdump` on the LAN interface, filtering for `arp or host 192.168.25.99`, will tell you exactly what vm1 is doing and which TCP port it is reaching for.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Pick a tool for the spoof",
+          "content": "The dsniff package ships `arpspoof`, which is the most direct option. `bettercap` and `ettercap` will also do it if you prefer their UI. You only need to spoof in one direction here — vm1 has to think you are 192.168.25.99.",
+          "hint_penalty": 20,
+          "order": 1
+        },
+        {
+          "title": "You also need a listener",
+          "content": "Claiming the IP is not enough on its own; the kernel will see the SYN and respond with a RST unless you have something bound to that TCP port. tcpdump in step one tells you which port to listen on.",
+          "hint_penalty": 25,
+          "order": 2
+        },
+        {
+          "title": "nc is silent — what now?",
+          "content": "If arpspoof is sending replies and your listener is bound to the port but nothing arrives, the frames are reaching you but Linux is dropping them at the IP layer because `192.168.25.99` is not one of your interface's addresses. Add it as a secondary IP with `sudo ip addr add 192.168.25.99/32 dev eth0` and try again.",
+          "hint_penalty": 30,
+          "order": 3
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 100,
+      "variant_answers": true,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {"technique_key": "TA0006.T1557.002"},
+        {"technique_key": "TA0007.T1040"},
+        {"technique_key": "TA0007.T1046"}
+      ],
+      "expected_commands": [
+        "tcpdump",
+        "arpspoof",
+        "nc"
+      ],
+      "commands_required": false
+    }
+  ],
+  "estimated_duration": 30,
+  "variant_sandboxes": true
+}
