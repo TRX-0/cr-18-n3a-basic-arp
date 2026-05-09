@@ -1,19 +1,72 @@
----
-
-- name: Configure broadcasting host
-  hosts: vm1
+# ─────────────────────────────────────────────
+#  vm1 - flag emitter
+# ─────────────────────────────────────────────
+- name: configure broadcasting host vm1
+  hosts:
+    - vm1
   become: true
-  gather_facts: true
-  roles:
-    - role: arp-flag-broadcaster
-      decoy_ip: 192.168.25.99
-      decoy_port: 4444
-      flag_value: "{{ flag }}"
 
-- name: Provision attacker workstation
-  hosts: vma
+  vars:
+    decoy_ip: 192.168.25.99
+    decoy_port: 4444
+    broadcast_interval_sec: 10
+
+  tasks:
+    - name: Install netcat
+      ansible.builtin.apt:
+        name: netcat-openbsd
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Deploy flag emitter script
+      ansible.builtin.template:
+        src: flag-emitter.sh.j2
+        dest: /usr/local/sbin/flag-emitter.sh
+        owner: root
+        group: root
+        mode: '0750'
+      notify: restart flag emitter timer
+
+    - name: Deploy flag emitter service unit
+      ansible.builtin.template:
+        src: flag-emitter.service.j2
+        dest: /etc/systemd/system/flag-emitter.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Deploy flag emitter timer unit
+      ansible.builtin.template:
+        src: flag-emitter.timer.j2
+        dest: /etc/systemd/system/flag-emitter.timer
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable and start flag emitter timer
+      ansible.builtin.systemd:
+        name: flag-emitter.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+  handlers:
+    - name: restart flag emitter timer
+      ansible.builtin.systemd:
+        name: flag-emitter.timer
+        state: restarted
+        daemon_reload: true
+
+
+# ─────────────────────────────────────────────
+#  vma - attacker workstation
+# ─────────────────────────────────────────────
+- name: provision attacker workstation vma
+  hosts:
+    - vma
   become: true
-  gather_facts: true
+
   roles:
     - role: user-access
       user_access_username: user
