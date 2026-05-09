@@ -1,4 +1,6 @@
 # APG variables. See https://docs.platform.cyberrange.cz/user-guide-advanced/sandboxes/apg-variables/
 
 flag:
-    type: text
+    type: password
+    length: 16
+    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
