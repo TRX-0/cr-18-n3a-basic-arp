@@ -14,22 +14,12 @@ hosts:
       mgmt_user: debian
       mgmt_protocol: ssh
     hidden: false
-routers:
-  - name: router
-    flavor: standard.small
-    base_box:
-      image: debian-12-x86_64
-      mgmt_user: debian
-      mgmt_protocol: ssh
-    hidden: false
+routers: []
 networks:
   - name: lan
     cidr: 192.168.25.0/24
     accessible_by_user: true
     hidden: false
-wan:
-  name: internet-connection
-  cidr: 10.10.10.0/24
 net_mappings:
   - host: vm1
     network: lan
@@ -37,8 +27,5 @@ net_mappings:
   - host: vma
     network: lan
     ip: 192.168.25.20
-router_mappings:
-  - router: router
-    network: lan
-    ip: 192.168.25.1
+router_mappings: []
 groups: []
