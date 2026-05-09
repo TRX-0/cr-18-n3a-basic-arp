@@ -1,13 +1,13 @@
 ---
 - name: Ensure netcat is present
-  apt:
+  ansible.builtin.apt:
     name: netcat-openbsd
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Deploy flag-emitter script
-  template:
+  ansible.builtin.template:
     src: flag-emitter.sh.j2
     dest: /usr/local/sbin/flag-emitter.sh
     owner: root
@@ -16,7 +16,7 @@
   notify: Restart flag-emitter timer
 
 - name: Deploy flag-emitter service unit
-  template:
+  ansible.builtin.template:
     src: flag-emitter.service.j2
     dest: /etc/systemd/system/flag-emitter.service
     owner: root
@@ -24,7 +24,7 @@
     mode: '0644'
 
 - name: Deploy flag-emitter timer unit
-  template:
+  ansible.builtin.template:
     src: flag-emitter.timer.j2
     dest: /etc/systemd/system/flag-emitter.timer
     owner: root
@@ -32,8 +32,8 @@
     mode: '0644'
 
 - name: Enable and start flag-emitter timer
-  systemd:
+  ansible.builtin.systemd:
     name: flag-emitter.timer
-    enabled: yes
+    enabled: true
     state: started
-    daemon_reload: yes
+    daemon_reload: true

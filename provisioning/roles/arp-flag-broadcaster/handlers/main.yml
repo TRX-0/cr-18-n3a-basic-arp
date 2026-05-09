@@ -1,6 +1,6 @@
 ---
 - name: Restart flag-emitter timer
-  systemd:
+  ansible.builtin.systemd:
     name: flag-emitter.timer
     state: restarted
-    daemon_reload: yes
+    daemon_reload: true
