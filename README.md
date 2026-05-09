@@ -34,6 +34,6 @@ The flag value comes from the `flag` APG variable defined in `variables.yml`, so
 
 ## MITRE mapping
 
-- `T1557.002` — Adversary-in-the-Middle: ARP Cache Poisoning
-- `T1040` — Network Sniffing
-- `T1046` — Network Service Discovery
+- `T1557.002` Adversary-in-the-Middle / ARP Cache Poisoning
+- `T1040` Network Sniffing
+- `T1046` Network Service Discovery
