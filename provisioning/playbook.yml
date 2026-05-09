@@ -2,8 +2,8 @@
 
 - name: Configure broadcasting host
   hosts: vm1
-  become: yes
-  gather_facts: yes
+  become: true
+  gather_facts: true
   roles:
     - role: arp-flag-broadcaster
       decoy_ip: 192.168.25.99
@@ -12,17 +12,10 @@
 
 - name: Provision attacker workstation
   hosts: vma
-  become: yes
-  gather_facts: yes
+  become: true
+  gather_facts: true
   roles:
     - role: user-access
       user_access_username: user
-      user_access_password: Password123
-      user_access_sudo: True
-
-- name: Enable command logging on hosts
-  hosts: hosts
-  become: yes
-  roles:
-    - role: sandbox-logging
-      slf_destination_port: '{% if hostvars["man"] is defined -%} 514 {%- else -%} 515 {%- endif %}'
+      user_access_password: 'Password123'
+      user_access_sudo: true
