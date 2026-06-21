@@ -7,6 +7,6 @@
 
 DEST_IP="{{ decoy_ip }}"
 DEST_PORT="{{ decoy_port }}"
-FLAG="CADMUS{{ '{' }}{{ flag }}{{ '}' }}"
+FLAG="{{ flag }}"
 
 echo "$FLAG" | nc -w 3 -N "$DEST_IP" "$DEST_PORT"
