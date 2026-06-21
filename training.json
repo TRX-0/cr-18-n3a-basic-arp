@@ -31,9 +31,17 @@
       "local_content": "This sandbox has not been validated for local-only deployment."
     },
     {
+      "title": "Background — ARP and how it is abused",
+      "level_type": "INFO_LEVEL",
+      "order": 2,
+      "estimated_duration": 7,
+      "minimal_possible_solve_time": null,
+      "content": "Before the attack, a quick primer on what ARP actually does and why it is so easy to lie to.\n\n## ARP — the L2/L3 bridge\n\nWhen your machine wants to send an IP packet to another host on the same subnet, it has to know the destination's MAC address. IP is layer 3; MACs are layer 2. ARP (Address Resolution Protocol) is the bridge between them.\n\nThe exchange is dumb-simple:\n\n1. Sender broadcasts: *who has 192.168.25.99? tell 192.168.25.10*\n2. The owner of `.99` (if any) unicasts back: *192.168.25.99 is at `<my-mac>`*\n3. Sender caches the mapping in its **ARP cache** and uses that MAC for future packets to `.99`\n4. The cache entry stays `REACHABLE` for a few minutes, then `STALE`, then gets refreshed when needed\n\nView yours with `ip neigh show` on any Linux host.\n\n## Where the trust falls apart\n\nNothing in ARP authenticates the reply. Whoever responds first — or just keeps responding — gets believed. Most implementations also accept **unsolicited** replies: a frame that says *\"X is at this-mac\"* with nobody asking. Your ARP cache updates anyway.\n\nThat's the entire attack: lie about who owns an IP, the victim's cache learns the lie, the victim sends frames to your MAC instead.\n\n## Tools that send the lies\n\n- **`arpspoof`** (from the `dsniff` package): two-second cadence of forged replies. Old, simple, reliable. Just point it at the victim and the IP you want to claim. Pre-installed on this image.\n- **`bettercap`**: heavier framework with auto-discovery and filter modules. Excellent for victim ↔ gateway attacks; awkward for victim ↔ victim (we hit reliability issues during development of N3b).\n- **`ettercap`**: ARP MITM plus its own filter language for in-line packet modification. Good for read-only sniffing.\n\nFor *this* scenario, `arpspoof` is the right pick.\n\n## Why this scenario is the easy case\n\nNobody owns `192.168.25.99`. There's no competing reply for your spoof to race against — anything you send wins by default. You also don't need to spoof bidirectionally; vm1 is the only victim and you're not pretending to be vm1 to anybody.\n\nThis is the simplest possible ARP attack. The intermediate (N3b) and advanced (N3c) scenarios add real victims at both ends, IP forwarding, and packet modification on top.\n\n## The catch that bites everyone\n\nSpoofing the ARP redirects the *frame* to your interface. But Linux's IP stack still checks the destination IP — and if `192.168.25.99` isn't one of *your* interface's addresses, the kernel drops the packet at layer 3 no matter how it arrived.\n\nClaiming the MAC isn't enough. You also have to claim the IP itself, as a secondary address on your NIC:\n\n   `sudo ip addr add 192.168.25.99/32 dev eth1`\n\nNow the kernel happily delivers the redirected frame to whatever is listening on its destination port. Skip this step and your `nc` listener will sit silent forever; the kernel drops every SYN before nc ever sees it."
+    },
+    {
       "title": "Capture the broadcast",
       "level_type": "TRAINING_LEVEL",
-      "order": 2,
+      "order": 3,
       "estimated_duration": 25,
       "minimal_possible_solve_time": 5,
       "answer": null,
@@ -85,6 +93,6 @@
       "commands_required": false
     }
   ],
-  "estimated_duration": 30,
+  "estimated_duration": 37,
   "variant_sandboxes": true
 }
