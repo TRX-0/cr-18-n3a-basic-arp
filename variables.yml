@@ -3,4 +3,4 @@
 flag:
     type: password
     length: 16
-    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+    prohibited: ['{', '}', '"', "'", ' ', '\', '/']
